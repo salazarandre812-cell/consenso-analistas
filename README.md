@@ -1,10 +1,11 @@
 # Tracker de consenso unânime
 
-Uma lista das ações do S&P 500 onde 100% dos analistas que as cobrem têm
-rating de compra — com um piso mínimo de cobertura para o número significar
-alguma coisa.
+Uma lista das ações da Nasdaq + NYSE onde 100% dos analistas que as cobrem
+têm rating de compra — com um piso mínimo de cobertura para o número
+significar alguma coisa.
 
-Corre sozinho no GitHub Actions. Sem servidor, sem custos.
+Corre sozinho no GitHub Actions. Sem servidor, sem custos (dentro dos
+minutos grátis — ver nota sobre frequência mais abaixo).
 
 ---
 
@@ -31,9 +32,17 @@ No repositório: `Settings` → `Secrets and variables` → `Actions` →
 
 **4. Primeira execução**
 
-Separador `Actions` → `Consenso de analistas` → `Run workflow`. Demora cerca
-de 10 minutos a percorrer as 500 ações. A partir daí corre sozinho às 07:00
-UTC de segunda a sexta.
+Separador `Actions` → `Consenso de analistas` → `Run workflow`. Com o
+universo alargado a toda a Nasdaq + NYSE (milhares de tickers), a corrida
+demora cerca de 2 horas. A partir daí corre sozinho uma vez por semana, à
+segunda-feira às 07:00 UTC.
+
+**Porque só uma vez por semana:** a 1.1s por chamada à Finnhub, cobrir o
+mercado inteiro (em vez de só o S&P 500) faz a corrida passar de ~10 minutos
+para ~2 horas. Cinco corridas de 2h por semana ultrapassaria os 2.000
+minutos/mês grátis de GitHub Actions em repositórios privados — por isso o
+`cron` está em modo semanal. Se preferires mais frequência, o botão
+`Run workflow` continua disponível a qualquer momento para correres à mão.
 
 **5. Ver o resultado**
 
@@ -80,8 +89,10 @@ ASML,ASML Holding
 # linhas com cardinal são ignoradas
 ```
 
-Se o ficheiro existir, substitui o S&P 500. Útil se quiseres seguir só a tua
-watchlist — e muito mais rápido.
+Se o ficheiro existir, substitui a lista de mercado completo. Útil se
+quiseres seguir só a tua watchlist — e muito mais rápido (podes inclusive
+voltar ao `cron` diário sem preocupação de custos, já que uma watchlist
+pequena corre em segundos).
 
 ---
 
