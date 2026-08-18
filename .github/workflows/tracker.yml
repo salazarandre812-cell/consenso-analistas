@@ -31,7 +31,8 @@ jobs:
       - name: Correr o tracker
         env:
           FINNHUB_API_KEY: ${{ secrets.FINNHUB_API_KEY }}
-        run: python tracker.py
+          PYTHONUNBUFFERED: "1"
+        run: python -u tracker.py
 
       - name: Guardar o resultado
         run: |

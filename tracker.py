@@ -11,6 +11,7 @@ Uso pessoal. Dados via Finnhub (plano gratuito).
 
 import json
 import os
+import random
 import sys
 import time
 import urllib.error
@@ -68,8 +69,18 @@ UNIVERSO_FALLBACK = {
 
 # ------------------------------------------------------------------ http
 
+class ChaveRecusadaErro(Exception):
+    """A Finnhub respondeu 401/403 a este pedido especifico."""
+
+
 def http_json(url, tentativas=4):
-    """GET com backoff. Devolve None se falhar de vez."""
+    """GET com backoff. Devolve None se falhar de vez.
+
+    Um 401/403 nao e tratado aqui como fatal — quem chama decide se e um
+    erro de configuracao (chave errada logo a primeira) ou quota do plano
+    gratuito esgotada a meio de uma corrida grande (nesse caso ja houve
+    leituras validas antes desta).
+    """
     for tentativa in range(tentativas):
         try:
             pedido = urllib.request.Request(
@@ -84,9 +95,7 @@ def http_json(url, tentativas=4):
                 time.sleep(espera)
                 continue
             if erro.code in (401, 403):
-                print("Chave da API recusada. Verifica FINNHUB_API_KEY.",
-                      file=sys.stderr)
-                sys.exit(1)
+                raise ChaveRecusadaErro(f"HTTP {erro.code}") from erro
             return None
         except Exception:
             time.sleep(2 * (tentativa + 1))
@@ -246,20 +255,48 @@ def ler_recomendacoes(ticker):
 
 
 def recolher(universo):
-    """Le o universo inteiro e devolve {ticker: leitura}.
+    """Le o universo inteiro e devolve (leituras, falhas, tentados).
 
     Guardamos tudo, nao so o que qualifica: para saber se uma accao
     antes unanime desceu, e preciso ter a leitura de agora.
+
+    A ordem e baralhada a cada corrida. Com um universo grande (Nasdaq +
+    NYSE), uma corrida pode nao conseguir chegar ao fim se a Finnhub cortar
+    o acesso a meio (quota do plano gratuito) — sem baralhar, as accoes
+    cujo ticker comeca por letras tardias nunca seriam verificadas.
     """
     leituras = {}
     falhas = 0
-    tickers = sorted(universo)
+    tickers = list(universo)
+    random.shuffle(tickers)
 
     for indice, ticker in enumerate(tickers, 1):
         if indice % 50 == 0 or indice == 1:
             print(f"  {indice}/{len(tickers)}...")
 
-        rec = ler_recomendacoes(ticker)
+        try:
+            rec = ler_recomendacoes(ticker)
+        except ChaveRecusadaErro:
+            if leituras:
+                # Ja tivemos sucessos nesta corrida — isto e quota do
+                # plano gratuito esgotada a meio, nao uma chave errada.
+                # Terminamos de forma limpa com o que ja foi recolhido,
+                # em vez de deitar fora uma corrida quase completa.
+                print(
+                    f"Chave recusada pela Finnhub ao fim de {len(leituras)} "
+                    f"leituras validas (tentativa {indice}/{len(tickers)}) "
+                    "— provavelmente a quota do plano gratuito esgotou-se "
+                    "a meio da corrida. A publicar com o que foi possivel "
+                    "recolher.",
+                    file=sys.stderr,
+                )
+                break
+            # Recusada logo nas primeiras tentativas, sem nenhum sucesso
+            # antes: isto e mesmo um problema de configuracao da chave.
+            print("Chave da API recusada. Verifica FINNHUB_API_KEY.",
+                  file=sys.stderr)
+            sys.exit(1)
+
         if rec is None:
             falhas += 1
         else:
@@ -268,8 +305,10 @@ def recolher(universo):
             leituras[ticker] = rec
 
         time.sleep(INTERVALO)
+    else:
+        indice = len(tickers)
 
-    return leituras, falhas
+    return leituras, falhas, indice
 
 
 def qualifica(rec):
@@ -611,9 +650,17 @@ def montar_movimentos(entraram):
     return '<div class="movimentos">' + "".join(etiquetas) + "</div>"
 
 
-def escrever_pagina(resultados, n_universo, falhas, entraram, alertas):
+def escrever_pagina(resultados, tentados, total_universo, falhas, entraram,
+                     alertas):
     agora = datetime.now(timezone.utc)
     periodo = resultados[0]["periodo"] if resultados else "&mdash;"
+
+    # Se a corrida foi cortada a meio (quota da Finnhub esgotada), o texto
+    # tem de dizer isso — nunca fingir que o universo todo foi verificado.
+    if tentados < total_universo:
+        n_universo = f"{tentados} de {total_universo}"
+    else:
+        n_universo = str(total_universo)
 
     html = PAGINA.format(
         data_curta=agora.strftime("%d/%m/%Y"),
@@ -659,7 +706,10 @@ def main():
     universo = carregar_universo()
     print(f"A recolher ratings (~{len(universo) * INTERVALO / 60:.0f} min)...")
 
-    leituras, falhas = recolher(universo)
+    leituras, falhas, tentados = recolher(universo)
+    if tentados < len(universo):
+        print(f"AVISO: corrida cortada a meio — {tentados} de {len(universo)} "
+              "tickers tentados. A pagina vai refletir isso.", file=sys.stderr)
 
     qualificadas = [r for r in leituras.values() if qualifica(r)]
     qualificadas.sort(key=lambda r: (-r["total"], r["ticker"]))
@@ -686,6 +736,8 @@ def main():
     instantaneo = {
         "gerado_em": datetime.now(timezone.utc).isoformat(),
         "universo": len(universo),
+        "tentados": tentados,
+        "cobertura_completa": tentados >= len(universo),
         "min_analistas": MIN_ANALISTAS,
         "sem_resposta": falhas,
         "total_qualificadas": len(qualificadas),
@@ -702,7 +754,8 @@ def main():
     with FICHEIRO_HISTORICO.open("a", encoding="utf-8") as f:
         f.write(json.dumps(instantaneo, ensure_ascii=False) + "\n")
 
-    escrever_pagina(resultados, len(universo), falhas, entraram, alertas)
+    escrever_pagina(resultados, tentados, len(universo), falhas, entraram,
+                     alertas)
 
     print(f"\n{len(qualificadas)} accoes qualificadas, "
           f"{len(resultados)} na lista.")
