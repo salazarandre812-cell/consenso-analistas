@@ -47,6 +47,13 @@ URL_SP500 = (
     "s-and-p-500-companies/main/data/constituents.csv"
 )
 
+# Listas oficiais de todos os tickers cotados na Nasdaq e na NYSE (+ outras
+# bolsas cobertas pelo ficheiro "otherlisted"). Usadas como universo
+# principal; o S&P 500 acima passa a ser apenas o primeiro nivel de reserva
+# se estas duas nao responderem.
+URL_NASDAQ_LISTED = "https://www.nasdaqtrader.com/dynamic/SymDir/nasdaqlisted.txt"
+URL_OTHER_LISTED = "https://www.nasdaqtrader.com/dynamic/SymDir/otherlisted.txt"
+
 # Rede de seguranca se o CSV do universo estiver inacessivel.
 UNIVERSO_FALLBACK = {
     "AAPL": "Apple", "MSFT": "Microsoft", "NVDA": "NVIDIA",
@@ -99,8 +106,69 @@ def http_texto(url):
 
 # -------------------------------------------------------------- universo
 
+def _parse_symbol_directory(texto, coluna_symbol):
+    """Faz parsing de um ficheiro pipe-delimited da Nasdaq Trader.
+
+    Exclui ETFs e "test issues" — o que sobra sao acoes normais, que e o
+    que interessa para leituras de recomendacoes de analistas.
+    """
+    universo = {}
+    linhas = texto.splitlines()
+    if not linhas:
+        return universo
+
+    cabecalho = linhas[0].split("|")
+    idx = {nome: i for i, nome in enumerate(cabecalho)}
+    if coluna_symbol not in idx or "Security Name" not in idx:
+        return universo
+
+    for linha in linhas[1:]:
+        if not linha or linha.startswith("File Creation Time"):
+            continue
+        campos = linha.split("|")
+        if len(campos) != len(cabecalho):
+            continue
+
+        symbol = campos[idx[coluna_symbol]].strip()
+        etf = campos[idx.get("ETF", -1)].strip() if "ETF" in idx else ""
+        teste = (campos[idx.get("Test Issue", -1)].strip()
+                 if "Test Issue" in idx else "")
+        if not symbol or etf == "Y" or teste == "Y":
+            continue
+
+        nome = campos[idx["Security Name"]].strip()
+        universo[symbol.replace(".", "-").upper()] = nome or symbol
+
+    return universo
+
+
+def carregar_universo_mercado_completo():
+    """Todos os tickers da Nasdaq + NYSE (e bolsas afins), via Nasdaq Trader.
+
+    Sao dois ficheiros porque a Nasdaq Trader separa por operadora de
+    listagem: um para a propria Nasdaq, outro para tudo o resto (NYSE,
+    NYSE American, NYSE Arca, Cboe BZX, ...).
+    """
+    universo = {}
+
+    texto_nasdaq = http_texto(URL_NASDAQ_LISTED)
+    if texto_nasdaq:
+        universo.update(_parse_symbol_directory(texto_nasdaq, "Symbol"))
+
+    texto_outras = http_texto(URL_OTHER_LISTED)
+    if texto_outras:
+        universo.update(_parse_symbol_directory(texto_outras, "ACT Symbol"))
+
+    return universo
+
+
 def carregar_universo():
-    """Devolve {ticker: nome}. universe.txt local tem prioridade."""
+    """Devolve {ticker: nome}. universe.txt local tem prioridade.
+
+    Reserva em dois niveis: se a lista completa do mercado (Nasdaq + NYSE)
+    nao responder, cai para o S&P 500; se nem isso responder, usa a lista
+    fixa de emergencia.
+    """
     if FICHEIRO_UNIVERSO.exists():
         universo = {}
         for linha in FICHEIRO_UNIVERSO.read_text(encoding="utf-8").splitlines():
@@ -116,6 +184,11 @@ def carregar_universo():
             print(f"Universo: {len(universo)} tickers (universe.txt)")
             return universo
 
+    universo = carregar_universo_mercado_completo()
+    if universo:
+        print(f"Universo: {len(universo)} tickers (Nasdaq + NYSE)")
+        return universo
+
     csv_bruto = http_texto(URL_SP500)
     if csv_bruto:
         import csv
@@ -129,10 +202,10 @@ def carregar_universo():
             if ticker:
                 universo[ticker.replace(".", "-").upper()] = nome
         if universo:
-            print(f"Universo: {len(universo)} tickers (S&P 500)")
+            print(f"Universo: {len(universo)} tickers (S&P 500, reserva)")
             return universo
 
-    print("Nao consegui obter o S&P 500. A usar a lista de reserva.",
+    print("Nao consegui obter nenhuma lista de mercado. A usar a reserva fixa.",
           file=sys.stderr)
     return dict(UNIVERSO_FALLBACK)
 

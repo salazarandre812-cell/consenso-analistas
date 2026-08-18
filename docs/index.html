@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Consenso unanime &middot; 18/08/2026</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --tinta:      #0d1219;
+    --painel:     #151d28;
+    --linha:      #232f3f;
+    --texto:      #e2e8f0;
+    --apagado:    #75859c;
+    --marca:      #d9a441;
+    --entrada:    #5fb3bd;
+    --saida:      #a8657a;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    padding: 2.5rem 1.25rem 5rem;
+    background: var(--tinta);
+    color: var(--texto);
+    font-family: "IBM Plex Sans", system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+  .folha { max-width: 780px; margin: 0 auto; }
+
+  header { border-bottom: 1px solid var(--linha); padding-bottom: 1.5rem; }
+  .sobrescrito {
+    font-family: "IBM Plex Mono", monospace;
+    font-size: .7rem; letter-spacing: .16em; text-transform: uppercase;
+    color: var(--marca); margin: 0 0 .7rem;
+  }
+  h1 {
+    font-family: "Space Grotesk", sans-serif;
+    font-weight: 700; font-size: clamp(1.7rem, 5vw, 2.4rem);
+    line-height: 1.1; letter-spacing: -.02em; margin: 0 0 .8rem;
+  }
+  .subtitulo {
+    color: var(--apagado); font-size: .92rem; line-height: 1.55;
+    margin: 0; max-width: 52ch;
+  }
+  .meta {
+    font-family: "IBM Plex Mono", monospace; font-size: .74rem;
+    color: var(--apagado); margin-top: 1.2rem;
+    display: flex; flex-wrap: wrap; gap: 1.4rem;
+  }
+  .meta b { color: var(--texto); font-weight: 500; }
+
+  /* Alertas de mudanca de sentimento. Fica antes da lista porque uma
+     quebra e mais informativa do que a lista continuar igual. */
+  .alertas {
+    margin: 2rem 0 0; border: 1px solid #4a2f39; border-left-width: 3px;
+    border-radius: 4px; background: var(--painel); padding: 1.25rem 1.4rem;
+  }
+  .alertas h2 {
+    font-family: "IBM Plex Mono", monospace; font-weight: 600;
+    font-size: .72rem; letter-spacing: .14em; text-transform: uppercase;
+    color: var(--saida); margin: 0 0 1.1rem;
+  }
+  .alerta { padding: .8rem 0; border-top: 1px solid var(--linha); }
+  .alerta:first-of-type { padding-top: 0; border-top: 0; }
+  .alerta-topo {
+    display: flex; align-items: baseline; gap: .6rem; flex-wrap: wrap;
+  }
+  .alerta-ticker {
+    font-family: "Space Grotesk", sans-serif; font-weight: 700;
+    font-size: 1.02rem;
+  }
+  .alerta-empresa { color: var(--apagado); font-size: .8rem; }
+  .queda {
+    font-family: "IBM Plex Mono", monospace; font-size: .82rem;
+    font-weight: 600; color: var(--saida); margin-left: auto;
+    white-space: nowrap;
+  }
+  .queda s { color: var(--apagado); font-weight: 400; text-decoration: none; }
+  .alerta-nota {
+    color: var(--apagado); font-size: .82rem; line-height: 1.55;
+    margin: .4rem 0 0;
+  }
+  .alerta-nota b { color: var(--texto); font-weight: 500; }
+  .selo {
+    font-family: "IBM Plex Mono", monospace; font-size: .66rem;
+    letter-spacing: .1em; text-transform: uppercase;
+    padding: .15rem .45rem; border: 1px solid var(--linha);
+    border-radius: 2px; color: var(--apagado);
+  }
+
+  .movimentos { display: flex; flex-wrap: wrap; gap: .5rem; margin: 1.75rem 0 0; }
+  .etiqueta {
+    font-family: "IBM Plex Mono", monospace; font-size: .74rem;
+    padding: .3rem .6rem; border: 1px solid var(--linha); border-radius: 3px;
+  }
+  .etiqueta.entrou { color: var(--entrada); border-color: #2a4750; }
+  .etiqueta.saiu   { color: var(--saida);   border-color: #4a2f39; }
+
+  ol { list-style: none; padding: 0; margin: 2rem 0 0; }
+  li {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: .3rem 1.5rem;
+    padding: 1.05rem 0;
+    border-bottom: 1px solid var(--linha);
+  }
+  .ticker {
+    font-family: "Space Grotesk", sans-serif; font-weight: 700;
+    font-size: 1.12rem; letter-spacing: -.01em;
+  }
+  .empresa { color: var(--apagado); font-size: .84rem; }
+  .contagem {
+    font-family: "IBM Plex Mono", monospace; font-size: .95rem;
+    font-weight: 600; text-align: right; white-space: nowrap;
+  }
+  .contagem span { color: var(--apagado); font-weight: 400; font-size: .74rem; }
+
+  /* A barra de cobertura: um tracinho por analista. O sinal de 20
+     analistas nao vale o mesmo que o de 10, e isso tem de se ver. */
+  .cobertura {
+    grid-column: 1 / -1; display: flex; gap: 2px; margin-top: .55rem;
+  }
+  .cobertura i {
+    display: block; width: 7px; height: 13px;
+    background: var(--marca); opacity: .85; border-radius: 1px;
+  }
+
+  .vazio {
+    margin: 2.5rem 0; padding: 1.6rem; border: 1px dashed var(--linha);
+    border-radius: 4px; color: var(--apagado); font-size: .92rem;
+    line-height: 1.6;
+  }
+
+  footer {
+    margin-top: 3rem; padding-top: 1.5rem; border-top: 1px solid var(--linha);
+    color: var(--apagado); font-size: .78rem; line-height: 1.7;
+  }
+  footer p { margin: 0 0 .7rem; max-width: 62ch; }
+  footer a { color: var(--apagado); }
+</style>
+</head>
+<body>
+<div class="folha">
+
+  <header>
+    <p class="sobrescrito">Consenso unanime de analistas</p>
+    <h1>0 accoes sem uma unica recomendacao de venda ou manutencao</h1>
+    <p class="subtitulo">De 503 accoes analisadas, estas sao as que
+    reunem cobertura de pelo menos 10 analistas com a totalidade
+    a atribuir rating de compra.</p>
+    <div class="meta">
+      <span>Atualizado <b>18/08/2026 18:06 UTC</b></span>
+      <span>Periodo dos ratings <b>&mdash;</b></span>
+      <span>Sem resposta <b>0</b></span>
+    </div>
+  </header>
+
+  
+
+  
+
+  <div class="vazio">Nenhuma accao do universo cumpre os criterios nesta verificacao. Com um piso de cobertura exigente, isto acontece com regularidade &mdash; e o resultado esperado, nao uma falha.</div>
+
+  <footer>
+    <p>Ordenado pelo numero de analistas que cobrem cada accao, nao por
+    preferencia. A barra dourada mostra um tracinho por analista.</p>
+    <p>As recomendacoes do sell-side tendem historicamente para o lado
+    positivo &mdash; ratings de venda sao uma pequena fraccao do total. Um
+    consenso unanime diz mais sobre o sentimento dos analistas do que sobre
+    o comportamento futuro do preco.</p>
+    <p>Dados de <a href="https://finnhub.io">Finnhub</a>. Ferramenta pessoal,
+    sem fins comerciais. Nao e recomendacao de investimento.</p>
+  </footer>
+
+</div>
+</body>
+</html>
