@@ -25,7 +25,7 @@ API_KEY = os.environ.get("FINNHUB_API_KEY", "").strip()
 
 # Numero minimo de analistas para a percentagem ser interpretavel.
 # Com 2 analistas, "100% compra" nao significa nada. Nao baixes muito isto.
-MIN_ANALISTAS = 10
+MIN_ANALISTAS = 6
 
 # Quantas posicoes mostrar.
 TOP_N = 10
