@@ -1,10 +1,10 @@
 {
-  "gerado_em": "2026-08-24T08:51:16.734801+00:00",
+  "gerado_em": "2026-08-31T14:59:25.426584+00:00",
   "universo": 7497,
-  "tentados": 3183,
+  "tentados": 1475,
   "cobertura_completa": false,
   "min_analistas": 6,
-  "sem_resposta": 1104,
+  "sem_resposta": 550,
   "total_qualificadas": 0,
   "entraram": [],
   "alertas": [],
